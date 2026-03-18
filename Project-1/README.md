@@ -97,7 +97,43 @@ Port forward
 kubectl port-forward -n logging svc/kibana-kibana 5601:5601
 ```
 
-## 5. Deployment Strategies
+------------------------------------------------------------------------------
+## 6. Log Collection
+The Missing Link: Log Collection
+Elasticsearch is just a database; it doesn't "reach out" to grab logs. You need a Log Shipper to pick up the logs from your pods and send them to Elasticsearch.
+
+Since we are on a "Lite" memory budget, we should use Filebeat or Fluent Bit.
+
+### Step A: Install Filebeat (The Log Shipper)
+Run these commands to deploy a lightweight agent that will find your myapp logs and push them to the Elasticsearch service you already have running.
+
+```Bash
+helm repo add elastic https://helm.elastic.co
+helm repo update
+```
+- Install Filebeat and point it to your existing Elasticsearch
+```
+helm install filebeat elastic/filebeat \
+  --namespace logging \
+  --set terminationGracePeriod=0 \
+  --set daemonset.resources.requests.memory=100Mi \
+  --set daemonset.resources.limits.memory=200Mi
+```
+### Step B: Verify the "Log Flow"
+Wait about 2 minutes, then run this to see if the new indices are created:
+
+- Get the password again if you don't have it handy
+```Bash
+export ELK_PW=$(kubectl get secrets --namespace logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d)
+```
+- Query Elasticsearch directly to see the list of indices
+```
+kubectl exec -it -n logging elasticsearch-master-0 -- curl -u elastic:$ELK_PW localhost:9200/_cat/indices?v
+```
+- Look for a new row starting with filebeat- or logstash-.
+
+------------------------------------------------------------------------------
+## 7. Deployment Strategies
 A. Blue-Green Switch
 To perform a hard cutover:
 
@@ -127,7 +163,7 @@ or
 kubectl apply -f canary.yaml
 ```
 
-## 6. SRE FAQ & Troubleshooting
+### SRE FAQ & Troubleshooting
 How to verify which pods are serving traffic?
 ```Bash
 kubectl describe svc myapp-service | grep Selector
@@ -146,7 +182,8 @@ kubectl port-forward svc/myapp-service 8090:80
 minikube service myapp-service
 ```
 
-# Configure Grafana Dashboard
+------------------------------------------------------------------------------
+# 8. Configure Grafana Dashboard
 
 ## Create trafic for the app so that it will reflect in gafana. otherwise it will not show data in dashboards.
 Open a terminal and let it run atleast 15 mins.
@@ -227,11 +264,11 @@ Code snippet
 count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
 ```
 
-
+------------------------------------------------------------------------------
 # 7. Configuring Elasticserach and Kigana is documented in document ELK.md
 
 
-
+------------------------------------------------------------------------------
 # 8. Stop all services.
 ```
 minikube stop
@@ -244,7 +281,7 @@ To stop the project and reclaim system resources:
 3. `minikube delete`
 4. `docker system prune` (Optional)
 
-
+------------------------------------------------------------------------------
 # FAQ:
 ## "No Data" in Grafana?
 On Apple Silicon, cAdvisor metrics can be temperamental. If container_network_receive_bytes_total is empty, use the kube-state-metrics fallback:
