@@ -6,7 +6,7 @@ Before you can see logs in Kibana, you have to tell it which indices to look at.
 ```bash
 kubectl port-forward -n logging svc/kibana-kibana 5601:5601
 ```
-Run in new terminal to get password
+- Run in new terminal to get password
 ```
 kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
 ```
@@ -16,12 +16,13 @@ kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonp
 
 4. Go to Stack Management > Data Views (or Index Patterns).
 <img width="1198" height="619" alt="image" src="https://github.com/user-attachments/assets/3f011451-29f9-4698-9a77-b9bc1a1fca1b" />
+<img width="1198" height="619" alt="image" src="https://github.com/user-attachments/assets/284fea80-adc1-44fd-a511-c5b29b93f993" />
 
-Click Create data view.
+5.Click Create data view.
 
-Use logstash-* or * (depending on your log collector) to find your app logs.
+6. Use logstash-* or * (depending on your log collector) to find your app logs.
 
-Note: If you don't see indices yet, your log forwarder (like Filebeat or Fluentd) might need a restart to find the new namespace.
+- Note: If you don't see indices yet, your log forwarder (like Filebeat or Fluentd) might need a restart to find the new namespace.
 
 ## 2. Practice Scenario: The "Canary Log Check"
 Imagine you just scaled your Green deployment to 25%. You need to verify that Version 2 isn't throwing errors.
