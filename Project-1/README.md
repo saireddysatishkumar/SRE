@@ -37,16 +37,9 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
   --set prometheus.prometheusSpec.resources.requests.memory=1Gi \
   --set grafana.resources.requests.memory=200Mi
 ```
-Accessing Grafana:
-```
-URL: http://localhost:3000 (after port-forwarding)
-```
-User: admin
 
-Password: 
-
-Bash
-### Run in a separate terminal to access the UI
+### Accessing Grafana:
+Run in a separate terminal to access the UI
 ```
 export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=monitoring" -oname)
 #or
@@ -54,6 +47,9 @@ export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/n
 
 kubectl --namespace monitoring port-forward $POD_NAME 3000
 ```
+
+Access URL: http://localhost:3000 (after port-forwarding)
+
 ### Get your grafana admin user password by running:
 ```
   kubectl get secret --namespace monitoring -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" | base64 --decode ; echo
