@@ -48,16 +48,17 @@ Password:
 Bash
 ### Run in a separate terminal to access the UI
 ```
+export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=monitoring" -oname)
+#or
 export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana" -o name)
+
 kubectl --namespace monitoring port-forward $POD_NAME 3000
 ```
-Canary Verification Query
-To verify the deployment ratio in Grafana, use the following PromQL:
+### Get your grafana admin user password by running:
+```
+  kubectl get secret --namespace monitoring -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" | base64 --decode ; echo
+```
 
-Code snippet
-```
-count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
-```
 ## 4. Logging Stack (ELK)
 Elasticsearch is configured in single-node mode with a restricted JVM heap to fit within Minikube.
 
@@ -78,9 +79,14 @@ helm install elasticsearch elastic/elasticsearch \
 ```
 helm install kibana elastic/kibana --namespace logging
 ```
-Credentials:
-
-Elastic Password: 
+#### Watch all cluster members come up.
+```
+  $ kubectl get pods --namespace=logging -l app=elasticsearch-master -w
+```
+#### Retrieve elastic user's password.
+```
+  $ kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
+```
 
 ## 5. Deployment Strategies
 A. Blue-Green Switch
@@ -99,6 +105,7 @@ B. Canary Strategy (Weighted)
 To enable traffic splitting (e.g., 25% Green, 75% Blue):
 
 Remove the version label from the Service selector in deploy-strategy.yaml.
+or run canary.yml. the code change is stored in this file.
 
 Set replicas: 3 for myapp-blue.
 
@@ -107,6 +114,8 @@ Set replicas: 1 for myapp-green.
 Apply: 
 ```
 kubectl apply -f deploy-strategy.yaml
+or
+kubectl apply -f canary.yaml
 ```
 
 ## 6. SRE FAQ & Troubleshooting
@@ -129,9 +138,105 @@ minikube service myapp-service
 ```
 
 # Configure Grafana Dashboard
-### "No Data" in Grafana?
+
+## Create trafic for the app so that it will reflect in gafana. otherwise it will not show data in dashboards.
+Open a terminal and let it run atleast 15 mins.
+```
+export URL="http://localhost:8090
+while true; do curl -s $URL > /dev/null; sleep 0.1; done
+```
+## Create Dashboad in Grafana
+- Login to Grafana http://127.0.0.1:3000/
+- Dashboards > Add  Visualization > Data source (Prometheus - by default) > go Right side 'Panel options' > enter title > Standard Options > Unit > Misc > Percent(0.0-1.0). Save the dashboad
+- Click on code, pase following and run queries.
+```
+count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
+```
+- Click on 'save dashboard'
+- Change time intervel to 'Last 5 mins'.
+- It shows the load on green is low.
+<img width="1025" height="715" alt="Screenshot 2026-03-17 at 21 01 17" src="https://github.com/user-attachments/assets/2a38068e-2ea9-44e2-b9bf-57d3b7b11aaf" />
+
+ 
+
+## Canary Verification
+### Now assume that testing is done on green nodes and increase the replicas for green nodes and decrease blue replicas.
+```
+# Scale the Green deployment from 1 pod to 3 pods
+kubectl scale deployment myapp-green --replicas=3
+```
+
+### Watch the Graph:
+- Within 30 seconds, Prometheus will scrape the new pods.
+- The line in Grafana will climb from 0.25 to 0.50 (since you now have 3 Green and 3 Blue pods).
+
+<img width="2050" height="1430" alt="image" src="https://github.com/user-attachments/assets/f9268f5e-65ba-44cc-8154-4af9695c449c" />
+
+### Add a "Threshold" for your Team
+Since you are presenting this as a DevOps solution, you can make the graph look more professional:
+- On the right-hand sidebar in the Panel Editor, scroll down to Thresholds.
+- Click Add Threshold.
+- Set the value to 0.3 (30%).
+- Set the color to Red.
+This visually warns the SRE that the Canary has exceeded its intended 25% limit.
+
+### Verify with kubectl
+While waiting for the graph to climb, run this to see the pods coming online in real-time:
+```
+kubectl get pods -l app=myapp -w
+NAME                          READY   STATUS    RESTARTS   AGE
+myapp-blue-b57d9f75c-5sb74    1/1     Running   0          5h18m
+myapp-blue-b57d9f75c-t29rt    1/1     Running   0          5h18m
+myapp-blue-b57d9f75c-xt4hk    1/1     Running   0          5h18m
+myapp-green-dc87df5c7-4bpgh   1/1     Running   0          67m
+myapp-green-dc87df5c7-mjnpg   1/1     Running   0          67m
+myapp-green-dc87df5c7-npxg4   1/1     Running   0          5h18m
+```
+
+### Once you are happy with the Green version and your Grafana shows 0.50, you can complete the deployment by "killing" the Blue version:
+
+```Bash
+kubectl scale deployment myapp-blue --replicas=0
+kubectl get pods -l app=myapp -w                
+NAME                          READY   STATUS    RESTARTS   AGE
+myapp-green-dc87df5c7-4bpgh   1/1     Running   0          69m
+myapp-green-dc87df5c7-mjnpg   1/1     Running   0          69m
+myapp-green-dc87df5c7-npxg4   1/1     Running   0          5h20m
+```
+
+### Watch the Graph:
+- Within 30 seconds, Prometheus will scrape the pods.
+- The line in Grafana will climb from 0.50 to 0.100 (since you now have 3 Green and 0 Blue pods).
+
+<img width="1092" height="1191" alt="image" src="https://github.com/user-attachments/assets/a4e36ccf-c5eb-4a0c-a4dd-7e607d8486e2" />
+
+
+
+## To verify the deployment ratio in Grafana, use the following PromQL:
+Code snippet
+```
+count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
+```
+
+
+## "No Data" in Grafana?
 On Apple Silicon, cAdvisor metrics can be temperamental. If container_network_receive_bytes_total is empty, use the kube-state-metrics fallback:
 
 Code snippet
 # Percentage of Green pods vs Total
+```
 count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
+```
+
+
+# 7. Stop all services.
+```
+minikube stop
+```
+
+# 8. Cleanup
+To stop the project and reclaim system resources:
+1. `helm uninstall monitoring -n monitoring`
+2. `helm uninstall elasticsearch -n logging`
+3. `minikube delete`
+4. `docker system prune` (Optional)
