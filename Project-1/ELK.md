@@ -15,6 +15,7 @@ kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonp
 3. Login with user elastic and password. Ignore "%" from above password output.
 
 4. Go to Stack Management > Data Views (or Index Patterns).
+
 <img width="1198" height="619" alt="image" src="https://github.com/user-attachments/assets/3f011451-29f9-4698-9a77-b9bc1a1fca1b" />
 <img width="1198" height="619" alt="image" src="https://github.com/user-attachments/assets/284fea80-adc1-44fd-a511-c5b29b93f993" />
 
