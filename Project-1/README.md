@@ -37,7 +37,11 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
   --set prometheus.prometheusSpec.resources.requests.memory=1Gi \
   --set grafana.resources.requests.memory=200Mi
 ```
+#### port-forwarding prometheus
 
+```
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+```
 ### Accessing Grafana:
 Run in a separate terminal to access the UI
 ```
@@ -45,6 +49,7 @@ export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/n
 #or
 export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana" -o name)
 
+#port-forwarding
 kubectl --namespace monitoring port-forward $POD_NAME 3000
 ```
 
