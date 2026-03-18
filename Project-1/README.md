@@ -91,6 +91,11 @@ helm install kibana elastic/kibana --namespace logging
 ```
   $ kubectl get secrets --namespace=logging elasticsearch-master-credentials -ojsonpath='{.data.password}' | base64 -d
 ```
+#### Access Kibana
+Port forward
+```
+kubectl port-forward -n logging svc/kibana-kibana 5601:5601
+```
 
 ## 5. Deployment Strategies
 A. Blue-Green Switch
@@ -223,24 +228,28 @@ count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_
 ```
 
 
-## "No Data" in Grafana?
-On Apple Silicon, cAdvisor metrics can be temperamental. If container_network_receive_bytes_total is empty, use the kube-state-metrics fallback:
-
-Code snippet
-# Percentage of Green pods vs Total
-```
-count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
-```
+# 7. Configuring Elasticserach and Kigana is documented in document ELK.md
 
 
-# 7. Stop all services.
+
+# 8. Stop all services.
 ```
 minikube stop
 ```
 
-# 8. Cleanup
+# 9. Cleanup
 To stop the project and reclaim system resources:
 1. `helm uninstall monitoring -n monitoring`
 2. `helm uninstall elasticsearch -n logging`
 3. `minikube delete`
 4. `docker system prune` (Optional)
+
+
+# FAQ:
+## "No Data" in Grafana?
+On Apple Silicon, cAdvisor metrics can be temperamental. If container_network_receive_bytes_total is empty, use the kube-state-metrics fallback:
+
+- Percentage of Green pods vs Total
+```
+count(kube_pod_container_info{pod=~"myapp-green.*"}) / count(kube_pod_container_info{pod=~"myapp-.*"})
+```
