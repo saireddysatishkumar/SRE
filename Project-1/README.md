@@ -46,10 +46,13 @@ kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 909
 Run in a separate terminal to access the UI
 ```
 export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=monitoring" -oname)
+```
 #or
+```
 export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana" -o name)
-
+```
 #port-forwarding
+```
 kubectl --namespace monitoring port-forward $POD_NAME 3000
 ```
 
