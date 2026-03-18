@@ -119,6 +119,10 @@ helm install filebeat elastic/filebeat \
   --set daemonset.resources.requests.memory=100Mi \
   --set daemonset.resources.limits.memory=200Mi
 ```
+-  Watch all containers come up.
+```
+  $ kubectl get pods --namespace=logging -l app=filebeat-filebeat -w
+```
 ### Step B: Verify the "Log Flow"
 Wait about 2 minutes, then run this to see if the new indices are created:
 
