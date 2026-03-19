@@ -28,10 +28,54 @@ SRE/
 
 # Deployment Commands:
 
-```
+## Create AKS cluster
+```Bash
+brew install azure-cli
+az login
 cd terraform/environments/azure-lab
 terraform init
 terraform apply -auto-approve
 ```
 
-az aks get-credentials --resource-group rg-sre-lab --name aks-sre-lab
+## Deploy manifests on the cluster
+1. Open Azure Cloud Shell
+Go to the Azure Portal.
+
+Click the Cloud Shell icon (>_) next to the search bar at the top.
+
+If prompted, select Bash.
+
+2. Connect to your AKS Cluster
+Since you are already inside Azure, the handshake is instant. Run these two commands:
+
+```Bash
+# 1. Get the credentials
+az aks get-credentials --resource-group rg-sre-lab --name aks-sre-lab --overwrite-existing
+
+# 2. Verify the nodes are Ready
+kubectl get nodes
+```
+
+3. Upload your Manifests
+Since your files are currently on your Mac, you need to get them into the Cloud Shell.
+
+In the Cloud Shell window, click the "Upload/Download files" icon (it looks like a little folder with an arrow).
+
+Upload monitoring-stack.yaml and deploy-strategy.yaml from your SRE/kubernetes/Project-1/manifests/ folder.
+
+4. Deploy the Project
+Now that the files are in the cloud, just run:
+
+```Bash
+# Deploy Monitoring first
+kubectl apply -f monitoring-stack.yaml
+
+# Deploy the Blue/Green App
+kubectl apply -f deploy-strategy.yaml
+```
+5. Check the Public IP
+Since we changed the service type to LoadBalancer, Azure is currently talking to its networking stack to give you an IP.
+
+```Bash
+kubectl get svc myapp-service --watch
+```

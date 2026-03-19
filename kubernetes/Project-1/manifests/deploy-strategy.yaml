@@ -1,4 +1,4 @@
-# BLUE VERSION
+# BLUE VERSION (Stable)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,15 +20,24 @@ spec:
       - name: echo
         image: hashicorp/http-echo
         args: ["-text=Welcome to the BLUE Version"]
+        ports:
+        - containerPort: 5678
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
 ---
-# GREEN VERSION
+# GREEN VERSION (New Release)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: myapp-green
   namespace: default
 spec:
-  replicas: 2
+  replicas: 1 # Start with 1 replica for Canary testing
   selector:
     matchLabels:
       app: myapp
@@ -43,18 +52,28 @@ spec:
       - name: echo
         image: hashicorp/http-echo
         args: ["-text=Welcome to the GREEN Version"]
+        ports:
+        - containerPort: 5678
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
 ---
-# THE SERVICE (The entry point)
+# THE SERVICE (Azure Load Balancer)
 apiVersion: v1
 kind: Service
 metadata:
   name: myapp-service
   namespace: default
 spec:
-  type: NodePort
+  type: LoadBalancer # Changed from NodePort to get a Public IP in Azure
   selector:
     app: myapp
-    version: blue  # Initially pointing to Blue
+    # version: blue  <-- COMMENT THIS OUT to enable Canary (75% Blue / 25% Green)
+    # version: green <-- UNCOMMENT THIS to complete Blue-Green (100% Green)
   ports:
     - protocol: TCP
       port: 80
