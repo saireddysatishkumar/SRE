@@ -195,10 +195,23 @@ Alerting: This is what triggers your "Defense" mechanisms (like scaling or pagin
 
 
 # Metrics (grafana-promethius)
-1. Check the External IP:
+1. Port Forwarding (The "Zero-Cost" Tunnel):
 ```Bash
-kubectl get svc -n monitoring grafana-service -w
+kubectl port-forward svc/grafana-service -n monitoring 3000:3000
 ```
-Once the IP appears, you can access your dashboard at http://<EXTERNAL-IP>:3000
+you are using "Azure Cloud Shell" (Web Browser)
+If you are running this inside a web browser window (https://www.google.com/search?q=shell.azure.com), you cannot simply go to localhost:3000 on your Mac. You must use the Web Preview feature:
+
+Run the kubectl port-forward command above.
+
+Look at the top menu bar of the Cloud Shell window.
+
+Click the Web Preview icon (it looks like a little globe or a computer screen with a gear).
+
+Select Configure.
+
+Type 3000 and click Open and browse.
+
+Azure will open a new tab with a unique URL that tunnels directly to your Grafana pod.
 
 
