@@ -29,7 +29,7 @@ data:
           processors: [batch]
           exporters: [elasticsearch]
 ---
-# 2. OTEL COLLECTOR (Reduced Memory to 128Mi)
+# 2. OTEL COLLECTOR (Reduced to 100Mi)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -59,10 +59,10 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: "128Mi" # Reduced to fit B2s
+            memory: "100Mi"
           requests:
             cpu: 50m
-            memory: "64Mi"
+            memory: "50Mi"
         volumeMounts:
         - name: otel-collector-config-vol
           mountPath: /conf
@@ -71,7 +71,7 @@ spec:
           configMap:
             name: otel-collector-conf
 ---
-# 3. ELASTICSEARCH (Database - Main RAM Consumer)
+# 3. ELASTICSEARCH (Reduced to 400MB Heap)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,12 +101,12 @@ spec:
         - name: discovery.type
           value: single-node
         - name: ES_JAVA_OPTS
-          value: "-Xms512m -Xmx512m" 
+          value: "-Xms400m -Xmx400m" 
         resources:
           limits:
-            memory: "1Gi"
+            memory: "800Mi"
           requests:
-            memory: "768Mi" # Increased request to prevent scheduling on a full node
+            memory: "600Mi"
 ---
 apiVersion: v1
 kind: Service
@@ -121,7 +121,7 @@ spec:
       port: 9200
       targetPort: 9200
 ---
-# 4. KIBANA (Dashboard - Slim Profile)
+# 4. KIBANA (Reduced to 300Mi)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -152,9 +152,9 @@ spec:
           value: "http://elasticsearch:9200"
         resources:
           limits:
-            memory: "400Mi"
+            memory: "350Mi"
           requests:
-            memory: "256Mi"
+            memory: "250Mi"
 ---
 apiVersion: v1
 kind: Service

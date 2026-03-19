@@ -162,8 +162,3 @@ The Manual Rollback:
 4. Result: 100% of traffic immediately returns to the stable Blue version, even while the Green pods are still running.
 
 ---------------------------------------------------------------------------------------------------------------------------
-Component,Goal,Tool/Command
-Traffic Mgmt,Controlled Rollouts,Service Selectors / Labels
-Isolation,"Prevent ""Noisy Neighbors""",Node Taints & Tolerations
-Self-Healing,Maintain Uptime,Deployment Replicas
-Visibility,Debugging,kubectl logs / top
