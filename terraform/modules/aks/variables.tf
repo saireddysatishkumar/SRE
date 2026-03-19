@@ -18,12 +18,14 @@ variable "subnet_id" {
   description = "The ID of the subnet where AKS will be deployed"
 }
 
-variable "monitoring_node_size" {
-  type        = string
-  description = "VM size for the monitoring node pool"
-}
 
 variable "node_count" {
   type        = number
   description = "Number of nodes in the monitoring pool"
+}
+
+variable "aks_node_size" {
+  description = "The VM size for the AKS node pool"
+  type        = string
+  # No default here forces you to define it in your environment
 }

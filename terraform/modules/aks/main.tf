@@ -24,7 +24,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
 resource "azurerm_kubernetes_cluster_node_pool" "monitoring" {
   name                  = "monitorpool"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
-  vm_size               = var.monitoring_node_size
+  vm_size               = var.aks_node_size
   node_count            = var.node_count
   vnet_subnet_id        = var.subnet_id
 

@@ -24,11 +24,13 @@ module "network" {
 }
 
 module "aks" {
-  source               = "../../modules/aks"
-  rg_name              = azurerm_resource_group.sre.name
-  location             = azurerm_resource_group.sre.location
-  cluster_name         = "aks-sre-lab"
-  subnet_id            = module.network.subnet_id
-  monitoring_node_size = var.aks_node_size
-  node_count           = var.node_count
+  source        = "../../modules/aks"
+  rg_name       = azurerm_resource_group.sre.name
+  location      = azurerm_resource_group.sre.location
+  cluster_name  = "aks-sre-lab"
+  subnet_id     = module.network.subnet_id
+  
+  # FIX: Match the variable name declared in your module's variables.tf
+  aks_node_size = var.aks_node_size 
+  node_count    = var.node_count
 }
