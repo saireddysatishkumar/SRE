@@ -205,6 +205,7 @@ If you are running this inside a web browser window (https://www.google.com/sear
 Run the kubectl port-forward command above.
 
 Look at the top menu bar of the Cloud Shell window.
+<img width="966" height="643" alt="image" src="https://github.com/user-attachments/assets/f724ec6b-280f-4bc8-8d71-d3852187ef4b" />
 
 Click the Web Preview icon (it looks like a little globe or a computer screen with a gear).
 
