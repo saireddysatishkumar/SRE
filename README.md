@@ -3,9 +3,6 @@
 ```
 SRE/
 ├── terraform/                # Infrastructure as Code (Azure AKS)
-│   ├── modules/
-│   │   ├── aks/              # The script I provided earlier
-│   │   └── vnet/
 │   └── environments/
 │       └── azure-lab/        # Your main deployment folder
 │           ├── main.tf
@@ -25,8 +22,6 @@ SRE/
 ```
 
 
-- terraform/modules/: Your aks and vnet modules are now reusable. This is a "Best Practice" because you can now spin up identical clusters for Dev, QA, or Production just by changing a few variables.
-
 - terraform/environments/azure-lab/: Having a dedicated environment folder allows you to experiment with your Azure Free Account credits without accidentally breaking your module code.
 
 - kubernetes/Project-1/: Keeping your canary.yml and ELK.md documentation here maintains a clear boundary between Infrastructure (Azure) and Application Logic (SRE/Observability).
@@ -38,3 +33,5 @@ cd terraform/environments/azure-lab
 terraform init
 terraform apply -auto-approve
 ```
+
+az aks get-credentials --resource-group rg-sre-lab --name aks-sre-lab

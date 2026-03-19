@@ -4,3 +4,4 @@ kubeconfig
 .minikube/
 *.terraform*
 *.tfstate*
+*Kubeconfig*

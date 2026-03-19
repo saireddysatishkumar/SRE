@@ -1,4 +1,4 @@
-# Change these values
-node_count    = 1 
-aks_node_size = "Standard_B2ms" # Recommended alternative
-location      = "northeurope"
+location            = "northeurope"
+resource_group_name = "rg-sre-lab"
+aks_node_size       = "standard_b2s_v2"
+node_count          = 1
