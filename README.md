@@ -57,17 +57,19 @@ kubectl get nodes
 ```
 
 3. Upload your Manifests
-Since your files are currently on your Mac, you need to get them into the Cloud Shell.
+Since your files are github, you need to get them into the Cloud Shell.
 
-In the Cloud Shell window, click the "Upload/Download files" icon (it looks like a little folder with an arrow).
-
-Upload monitoring-stack.yaml and deploy-strategy.yaml from your SRE/kubernetes/Project-1/manifests/ folder.
+In the Cloud Shell window, run the command.
+```Bash
+git clone git clone https://github.com/saireddysatishkumar/SRE.git
+```
 
 4. Deploy the Project
 Now that the files are in the cloud, just run:
 
 ```Bash
 # Deploy Monitoring first
+cd SRE/kubernetes/Project-1/manifests/
 kubectl apply -f monitoring-stack.yaml
 
 # Deploy the Blue/Green App
