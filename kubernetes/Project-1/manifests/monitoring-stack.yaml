@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   name: monitoring
 ---
-# 1. OTEL CONFIGURATION (The Logic)
+# 1. OTEL CONFIGURATION
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -29,7 +29,7 @@ data:
           processors: [batch]
           exporters: [elasticsearch]
 ---
-# 2. OTEL COLLECTOR (The Receiver)
+# 2. OTEL COLLECTOR (Reduced Memory to 128Mi)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -58,8 +58,11 @@ spec:
         args: ["--config=/conf/otel-collector-config.yaml"]
         resources:
           limits:
-            cpu: 200m
-            memory: 256Mi
+            cpu: 100m
+            memory: "128Mi" # Reduced to fit B2s
+          requests:
+            cpu: 50m
+            memory: "64Mi"
         volumeMounts:
         - name: otel-collector-config-vol
           mountPath: /conf
@@ -68,7 +71,7 @@ spec:
           configMap:
             name: otel-collector-conf
 ---
-# 3. ELASTICSEARCH (The Database)
+# 3. ELASTICSEARCH (Database - Main RAM Consumer)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -103,7 +106,7 @@ spec:
           limits:
             memory: "1Gi"
           requests:
-            memory: "512Mi"
+            memory: "768Mi" # Increased request to prevent scheduling on a full node
 ---
 apiVersion: v1
 kind: Service
@@ -118,7 +121,7 @@ spec:
       port: 9200
       targetPort: 9200
 ---
-# 4. KIBANA (The Dashboard)
+# 4. KIBANA (Dashboard - Slim Profile)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -149,7 +152,9 @@ spec:
           value: "http://elasticsearch:9200"
         resources:
           limits:
-            memory: "512Mi"
+            memory: "400Mi"
+          requests:
+            memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service
