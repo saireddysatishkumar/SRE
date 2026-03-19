@@ -3,75 +3,47 @@ kind: Namespace
 metadata:
   name: monitoring
 ---
-# 1. OTEL CONFIGURATION
+# 1. FLUENT-BIT CONFIGURATION (The Logic)
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: otel-collector-conf
+  name: fluent-bit-config
   namespace: monitoring
 data:
-  otel-collector-config.yaml: |
-    receivers:
-      otlp:
-        protocols:
-          grpc:
-          http:
-    processors:
-      batch:
-    exporters:
-      elasticsearch:
-        endpoints: ["http://elasticsearch.monitoring.svc.cluster.local:9200"]
-        logs_index: "apps-logs"
-    service:
-      pipelines:
-        logs:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [elasticsearch]
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        5
+        Daemon       Off
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name             tail
+        Path             /var/log/containers/*.log
+        Parser           docker
+        Tag              kube.*
+        Refresh_Interval 10
+        Mem_Buf_Limit    5MB
+        Skip_Long_Lines  On
+
+    [OUTPUT]
+        Name            es
+        Match           *
+        Host            elasticsearch.monitoring.svc.cluster.local
+        Port            9200
+        Index           fluent-bit
+        Type            _doc
+        Replace_Dots    On
+        Retry_Limit     False
+
+  parsers.conf: |
+    [PARSER]
+        Name        docker
+        Format      json
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
 ---
-# 2. OTEL COLLECTOR (Reduced to 100Mi)
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: otel-collector
-  namespace: monitoring
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: otel
-  template:
-    metadata:
-      labels:
-        app: otel
-    spec:
-      tolerations:
-      - key: "dedicated"
-        operator: "Equal"
-        value: "monitoring"
-        effect: "NoSchedule"
-      nodeSelector:
-        role: "monitoring"
-      containers:
-      - name: otel-collector
-        image: otel/opentelemetry-collector:latest
-        args: ["--config=/conf/otel-collector-config.yaml"]
-        resources:
-          limits:
-            cpu: 100m
-            memory: "100Mi"
-          requests:
-            cpu: 50m
-            memory: "50Mi"
-        volumeMounts:
-        - name: otel-collector-config-vol
-          mountPath: /conf
-      volumes:
-        - name: otel-collector-config-vol
-          configMap:
-            name: otel-collector-conf
----
-# 3. ELASTICSEARCH (Reduced to 400MB Heap)
+# 2. ELASTICSEARCH (Reduced to 400MB Heap)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -104,7 +76,7 @@ spec:
           value: "-Xms400m -Xmx400m" 
         resources:
           limits:
-            memory: "800Mi"
+            memory: "850Mi"
           requests:
             memory: "600Mi"
 ---
@@ -121,50 +93,44 @@ spec:
       port: 9200
       targetPort: 9200
 ---
-# 4. KIBANA (Reduced to 300Mi)
+# 3. FLUENT-BIT (The Lightweight Shipper)
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  name: kibana
+  name: fluent-bit
   namespace: monitoring
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: kibana
+      app: fluent-bit
   template:
     metadata:
       labels:
-        app: kibana
+        app: fluent-bit
     spec:
-      tolerations:
-      - key: "dedicated"
-        operator: "Equal"
-        value: "monitoring"
-        effect: "NoSchedule"
-      nodeSelector:
-        role: "monitoring"
       containers:
-      - name: kibana
-        image: docker.elastic.co/kibana/kibana:7.17.10
-        env:
-        - name: ELASTICSEARCH_HOSTS
-          value: "http://elasticsearch:9200"
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.1.4
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: config
+          mountPath: /fluent-bit/etc/
         resources:
           limits:
-            memory: "350Mi"
+            memory: "100Mi"
           requests:
-            memory: "250Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kibana-service
-  namespace: monitoring
-spec:
-  type: LoadBalancer 
-  ports:
-    - port: 5601
-      targetPort: 5601
-  selector:
-    app: kibana
+            memory: "50Mi"
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: config
+        configMap:
+          name: fluent-bit-config
