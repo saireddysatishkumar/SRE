@@ -76,8 +76,22 @@ kubectl apply -f monitoring-stack.yaml
 kubectl apply -f deploy-strategy.yaml
 ```
 5. Check the Public IP
-Since we changed the service type to LoadBalancer, Azure is currently talking to its networking stack to give you an IP.
+Since we use the service type to LoadBalancer, Azure is currently talking to its networking stack to give you an IP.
 
 ```Bash
 kubectl get svc myapp-service --watch
+```
+
+6. Enter the EXTERNAL-IP in browswer to access application.
+You will see "Welcome to the BLUE Version" in the browser. 
+
+- Note: Now that your cluster is live and your manifests are being applied in the Azure Cloud Shell, you’ve moved from Infrastructure Setup to SRE Operations.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# Run a loop to see the traffic split in real-time
+```Bash
+while true; do curl -s http://$EXTERNAL_IP; echo; sleep 1; done
 ```
