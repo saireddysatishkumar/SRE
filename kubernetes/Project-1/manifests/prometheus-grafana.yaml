@@ -3,7 +3,36 @@ kind: Namespace
 metadata:
   name: monitoring
 ---
-# 1. PROMETHEUS (The Metrics Database)
+# 1. PROMETHEUS CONFIGURATION (Service Discovery Logic)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Only scrape pods that have the annotation: prometheus.io/scrape: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+---
+# 2. PROMETHEUS (The Metrics Database)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,7 +60,7 @@ spec:
         image: prom/prometheus:latest
         args:
           - "--config.file=/etc/prometheus/prometheus.yml"
-          - "--storage.tsdb.retention.time=1d" # Save RAM/Disk
+          - "--storage.tsdb.retention.time=1d"
         resources:
           limits:
             memory: "400Mi"
@@ -45,7 +74,7 @@ spec:
           configMap:
             name: prometheus-config
 ---
-# 2. GRAFANA (The Visuals)
+# 3. GRAFANA (The Visuals)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -79,6 +108,7 @@ spec:
           requests:
             memory: "128Mi"
 ---
+# 4. GRAFANA SERVICE (LoadBalancer for external access)
 apiVersion: v1
 kind: Service
 metadata:
