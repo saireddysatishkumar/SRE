@@ -3,6 +3,33 @@ kind: Namespace
 metadata:
   name: monitoring
 ---
+# 1. OTEL CONFIGURATION (The Logic)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-conf
+  namespace: monitoring
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+      batch:
+    exporters:
+      elasticsearch:
+        endpoints: ["http://elasticsearch.monitoring.svc.cluster.local:9200"]
+        logs_index: "apps-logs"
+    service:
+      pipelines:
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [elasticsearch]
+---
+# 2. OTEL COLLECTOR (The Receiver)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,24 +45,121 @@ spec:
       labels:
         app: otel
     spec:
-      # CRITICAL: This allows the pod to sit on your tainted "monitor" nodes
       tolerations:
       - key: "dedicated"
         operator: "Equal"
         value: "monitoring"
         effect: "NoSchedule"
-      
-      # CRITICAL: This forces the pod to your "monitor" pool specifically
       nodeSelector:
         role: "monitoring"
-
       containers:
       - name: otel-collector
         image: otel/opentelemetry-collector:latest
+        args: ["--config=/conf/otel-collector-config.yaml"]
         resources:
           limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
             cpu: 200m
             memory: 256Mi
+        volumeMounts:
+        - name: otel-collector-config-vol
+          mountPath: /conf
+      volumes:
+        - name: otel-collector-config-vol
+          configMap:
+            name: otel-collector-conf
+---
+# 3. ELASTICSEARCH (The Database)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "monitoring"
+        effect: "NoSchedule"
+      nodeSelector:
+        role: "monitoring"
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+        env:
+        - name: discovery.type
+          value: single-node
+        - name: ES_JAVA_OPTS
+          value: "-Xms512m -Xmx512m" 
+        resources:
+          limits:
+            memory: "1Gi"
+          requests:
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: monitoring
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+    - protocol: TCP
+      port: 9200
+      targetPort: 9200
+---
+# 4. KIBANA (The Dashboard)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "monitoring"
+        effect: "NoSchedule"
+      nodeSelector:
+        role: "monitoring"
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:7.17.10
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch:9200"
+        resources:
+          limits:
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: monitoring
+spec:
+  type: LoadBalancer 
+  ports:
+    - port: 5601
+      targetPort: 5601
+  selector:
+    app: kibana

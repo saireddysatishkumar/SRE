@@ -89,9 +89,81 @@ You will see "Welcome to the BLUE Version" in the browser.
 
 
 --------------------------------------------------------------------------------------------------------------------------------------------
+# SRE
+As an SRE, your job isn't just to "run" the code—it's to ensure it is observable, reliable, and scalable. Here is how to explore and configure the core components of your project.
 
+# 1. Explore Traffic Distribution (The "Canary" Test)
+Since you deployed both blue and green versions and commented out the version selector in your Service, the Load Balancer is now splitting traffic.
 
-# Run a loop to see the traffic split in real-time
 ```Bash
+# Run a loop to see the traffic split in real-time It can be exexute from local.
 while true; do curl -s http://$EXTERNAL_IP; echo; sleep 1; done
 ```
+
+- What to look for: You should see "Welcome to the BLUE Version" about 66% of the time and "GREEN" 33% of the time (since we have 2 blue replicas and 1 green).
+
+- SRE Goal: This proves your Canary strategy is working before you "cut over" to 100% Green.
+
+# 2. Configure Observability (The "Eyes" of SRE)
+You deployed the monitoring-stack.yaml. Now you need to verify that those pods are actually using the isolated hardware we built in Terraform.
+
+Check Pod Placement:
+
+```Bash
+kubectl get pods -n monitoring -o wide
+```
+
+- Verification: Look at the NODE column. Those pods should be running on the node belonging to the monitor pool, not the systempool.
+
+- SRE Logic: If your app (Blue/Green) has a memory leak, your monitoring tools will stay alive because they are on a different physical VM.
+
+# 3. Explore Logs and Metrics
+An SRE survives on data. Let's look at how your app is performing under the hood.
+
+- Streaming Logs: See what your "Green" version is doing:
+
+```Bash
+kubectl logs -l version=green -f
+```
+
+- Resource Usage: See how much CPU/Memory your pods are actually using (this requires Metrics Server, which is usually on by default in AKS):
+
+```Bash
+kubectl top pods
+kubectl top nodes
+```
+
+# 4. Test Self-Healing (The "Reliability" Test)
+One of the 4 Golden Signals of SRE is Availability. Let’s see how Kubernetes handles a failure.
+
+The "Chaos" Test:
+
+- In one terminal window, run the curl loop from Step 1.
+
+- In another window, "kill" one of your blue pods:
+
+```Bash
+kubectl delete pod -l version=blue --grace-period=0
+```
+
+- Observation: Watch the curl loop. You might see one or two errors, but Kubernetes will immediately start a new pod to maintain your "Desired State" of 2 replicas.
+
+# 5. Configure a "Rollback"
+What if the Green version is buggy? An SRE must be able to revert changes instantly.
+
+The Manual Rollback:
+
+1. Edit your deploy-strategy.yaml.
+
+2. Change the Service selector to strictly point back to version: blue.
+
+3. Re-apply: kubectl apply -f deploy-strategy.yaml.
+
+4. Result: 100% of traffic immediately returns to the stable Blue version, even while the Green pods are still running.
+
+---------------------------------------------------------------------------------------------------------------------------
+Component,Goal,Tool/Command
+Traffic Mgmt,Controlled Rollouts,Service Selectors / Labels
+Isolation,"Prevent ""Noisy Neighbors""",Node Taints & Tolerations
+Self-Healing,Maintain Uptime,Deployment Replicas
+Visibility,Debugging,kubectl logs / top
