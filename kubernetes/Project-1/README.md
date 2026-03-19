@@ -47,15 +47,17 @@ git clone git clone https://github.com/saireddysatishkumar/SRE.git
 Now that the files are in the cloud, just run:
 
 ```Bash
-# Deploy Monitoring first
-cd SRE/kubernetes/Project-1/manifests/
-kubectl apply -f monitoring-stack.yaml
+# 1. Move to your manifest directory
+cd ~/SRE/kubernetes/Project-1/manifests/
 
-# Deploy the Blue/Green App
+# 2. Deploy the Logging "Backend" (Elasticsearch + Fluent-Bit)
+kubectl apply -f efb-logging-stack.yaml
+
+# 3. Deploy the Metrics & Dashboard "Frontend"
+kubectl apply -f prometheus-grafana.yaml
+
+# 4. Finally, deploy the Application Strategy
 kubectl apply -f deploy-strategy.yaml
-
-# Deploy prometheus-grafana
-
 ```
 
 
@@ -190,3 +192,13 @@ Data: Number-based time series (e.g., CPU = 85%, Requests/sec = 100, Memory = 3.
 Alerting: This is what triggers your "Defense" mechanisms (like scaling or paging an engineer) before the node crashes.
 
 - Note: Traces are the third and final piece that is currently "missing" from your stack. We will conver it next project by upgrade server and deploy kibana and telemetry.
+
+
+# Metrics (grafana-promethius)
+1. Check the External IP:
+```Bash
+kubectl get svc -n monitoring grafana-service -w
+```
+Once the IP appears, you can access your dashboard at http://<EXTERNAL-IP>:3000
+
+

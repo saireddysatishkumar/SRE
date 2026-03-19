@@ -12,6 +12,11 @@ spec:
       version: blue
   template:
     metadata:
+      annotations:
+        # SRE DEFENSE: Tell Prometheus to scrape this pod
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5678"
+        prometheus.io/path: "/"
       labels:
         app: myapp
         version: blue
@@ -37,13 +42,18 @@ metadata:
   name: myapp-green
   namespace: default
 spec:
-  replicas: 1 # Start with 1 replica for Canary testing
+  replicas: 1 
   selector:
     matchLabels:
       app: myapp
       version: green
   template:
     metadata:
+      annotations:
+        # SRE DEFENSE: Monitor the new release closely
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5678"
+        prometheus.io/path: "/"
       labels:
         app: myapp
         version: green
@@ -69,11 +79,10 @@ metadata:
   name: myapp-service
   namespace: default
 spec:
-  type: LoadBalancer # Changed from NodePort to get a Public IP in Azure
+  type: LoadBalancer 
   selector:
     app: myapp
-    # version: blue  <-- COMMENT THIS OUT to enable Canary (75% Blue / 25% Green)
-    # version: green <-- UNCOMMENT THIS to complete Blue-Green (100% Green)
+    # version: blue  <-- COMMENT THIS OUT to enable Canary (2 Blue / 1 Green)
   ports:
     - protocol: TCP
       port: 80
