@@ -2,3 +2,5 @@
 *.log
 kubeconfig
 .minikube/
+*.terraform*
+*.tfstate

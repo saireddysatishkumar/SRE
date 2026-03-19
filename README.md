@@ -24,15 +24,17 @@ SRE/
 └── README.md                 # Root README explaining the whole repo
 ```
 
-Deployment Commands:
 
+- terraform/modules/: Your aks and vnet modules are now reusable. This is a "Best Practice" because you can now spin up identical clusters for Dev, QA, or Production just by changing a few variables.
+
+- terraform/environments/azure-lab/: Having a dedicated environment folder allows you to experiment with your Azure Free Account credits without accidentally breaking your module code.
+
+- kubernetes/Project-1/: Keeping your canary.yml and ELK.md documentation here maintains a clear boundary between Infrastructure (Azure) and Application Logic (SRE/Observability).
+
+# Deployment Commands:
+
+```
 cd terraform/environments/azure-lab
-
-# Initialize and pull modules
 terraform init
-
-# Review the 10+ resources being created
-terraform plan
-
-# Deploy to Azure
 terraform apply -auto-approve
+```
