@@ -1,4 +1,4 @@
-# For your first test, use only 1 monitoring node to save credits
+# Change these values
 node_count    = 1 
-aks_node_size = "Standard_B2ms"
+aks_node_size = "Standard_DS2_v2" # Recommended alternative
 location      = "eastus"
